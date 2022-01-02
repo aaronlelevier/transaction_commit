@@ -8,28 +8,67 @@
 
 %% API
 -export([
-  start_link/1,
-  get_state/1
+  start_link/0,
+  stutter/1,
+  prepare/1,
+  commit/1,
+  abort/1
 ]).
 
 %% gen_server
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
   code_change/3]).
 
-%% Macros
+%%%%%% Macros %%%%%%
+%% general
 -define(SERVER, ?MODULE).
 
+%% commands - to take an action
+-define(PREPARE, 'PREPARE').
+-define(COMMIT, 'COMMIT').
+-define(ABORT, 'ABORT').
+
+%% states - that can be assumed by the rm
+-define(WORKING, 'WORKING').
+-define(PREPARED, 'PREPARED').
+-define(COMMITTED, 'COMMITTED').
+-define(ABORTED, 'ABORTED').
+
+%% debug
 -define(GET_STATE, 'GET_STATE').
+
+%%
+-define(ACTION_MAP, #{
+  ?PREPARE => ?PREPARED,
+  ?COMMIT => ?COMMITTED,
+  ?ABORT => ?ABORTED
+}).
+
+-define(ALLOWED_MAP, #{
+  ?PREPARE => [?PREPARED, ?WORKING],
+  ?COMMIT => [?COMMITTED, ?PREPARED],
+  ?ABORT => [?ABORTED, ?WORKING, ?PREPARED]
+}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-start_link(Args) ->
-  gen_server:start_link(?MODULE, Args, []).
+start_link() ->
+  gen_server:start_link(?MODULE, ?WORKING, []).
 
-get_state(Pid) ->
-  gen_server:cast(Pid, ?GET_STATE).
+%% commands
+prepare(Pid) ->
+  gen_server:call(Pid, ?PREPARE).
+
+commit(Pid) ->
+  gen_server:call(Pid, ?COMMIT).
+
+abort(Pid) ->
+  gen_server:call(Pid, ?ABORT).
+
+stutter(Pid) ->
+  gen_server:call(Pid, ?GET_STATE).
 
 %%%===================================================================
 %%% Spawning and gen_server implementation
@@ -38,13 +77,15 @@ get_state(Pid) ->
 init(State) ->
   {ok, State}.
 
+handle_call(?GET_STATE, _From, State) ->
+  {reply, {ok, State}, State};
+handle_call(Request, _From, State) when is_map_key(Request, ?ACTION_MAP) ->
+  {ok, NewState} = action(Request, State),
+  {reply, {ok, NewState}, NewState};
 handle_call(Request, _From, State) ->
   io:format("call default | Request:~s State:~s~n", [Request, State]),
   {reply, ok, State}.
 
-handle_cast(?GET_STATE, State) ->
-  io:format("State: ~s~n", [State]),
-  {noreply, State};
 handle_cast(Request, State) ->
   io:format("cast default | Request:~s State:~s~n", [Request, State]),
   {noreply, State}.
@@ -61,3 +102,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+action(Action, State) ->
+  Allowed = maps:get(Action, ?ALLOWED_MAP),
+  true = lists:member(State, Allowed),
+  NewState = maps:get(Action, ?ACTION_MAP),
+  {ok, NewState}.

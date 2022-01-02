@@ -14,7 +14,7 @@ start_link() ->
 
 init([]) ->
   AChild = #{id => 'AName',
-    start => {rm, start_link, [working]},
+    start => {rm, start_link, []},
     restart => permanent,
     shutdown => 2000,
     type => worker,
