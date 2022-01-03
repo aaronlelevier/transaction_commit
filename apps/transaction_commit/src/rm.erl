@@ -1,6 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% @author Aaron Lelevier
 %%% @doc
+%%%
+%%% Second try at implementing the Resource Manager
+%%% Invalid transitions raises an error
 %%% @end
 %%%-------------------------------------------------------------------
 -module(rm).

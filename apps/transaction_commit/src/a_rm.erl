@@ -4,7 +4,7 @@
 %%% Reference: https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commit/TCommit.tla
 %%% @end
 %%%-------------------------------------------------------------------
--module(resource_manager).
+-module(a_rm).
 -behaviour(gen_server).
 
 %% API
