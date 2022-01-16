@@ -1,13 +1,10 @@
-{application, transaction_commit,
- [{description, "An OTP application"},
+{application, simple,
+ [{description, "An OTP library"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, {transaction_commit_app, []}},
   {applications,
    [kernel,
-    stdlib,
-    examples,
-    simple
+    stdlib
    ]},
   {env,[]},
   {modules, []},
