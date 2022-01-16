@@ -35,8 +35,9 @@ locked(
     NewButtons =:= Code -> % Correct
       do_unlock(),
       {next_state, open, Data#{buttons := []},
-        [{state_timeout,10000,lock}]}; % Time in milliseconds
+        [{state_timeout,5000,lock}]}; % 5 sec ~ Time in milliseconds
     true -> % Incomplete | Incorrect
+      io:format("~p locked; buttons: ~p~n", [self(), NewButtons]),
       {next_state, locked, Data#{buttons := NewButtons}}
   end.
 open(state_timeout, lock,  Data) ->

@@ -1,9 +1,4 @@
 examples
 =====
 
-An OTP library
-
-Build
------
-
-    $ rebar3 compile
+Example code from various places
