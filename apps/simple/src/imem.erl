@@ -12,14 +12,25 @@
   handle_event/4
 ]).
 
+%% Records
+-record(mreq, {op, adr, val}).
+
 %% API
 
 start_link() ->
   gen_statem:start_link(?MODULE, [], []).
 
-req(Pid, Req) ->
-  gen_statem:cast(Pid, {req, Req}),
-  {Pid, Req}.
+%% write req
+req(Pid, {Adr, Val} = _Req) ->
+  WrReq = #mreq{op="Wr", adr=Adr, val=Val},
+  gen_statem:cast(Pid, {req, WrReq});
+%% read req
+req(Pid, {Val} = _Req) ->
+  RdReq = #mreq{op="Rd", val=Val},
+  gen_statem:cast(Pid, {req, RdReq}).
+
+do(Pid) ->
+  gen_statem:cast(Pid, do).
 
 %% gen_statem
 
@@ -38,7 +49,15 @@ callback_mode() ->
 %% Module:handle_event(EventType, EventContent, State, Data)
 handle_event(cast, {req, Req}, "rdy" = _State, _Data) ->
   io:format("Send req:~p~n", [Req]),
-  {next_state, "busy", Req};
+  NewState = "busy",
+  NewData = Req,
+  {next_state, NewState, NewData};
+
+%%handle_event(cast, {req, Req}, "busy" = _State, _Data) ->
+%%  io:format("Send req:~p~n", [Req]),
+%%  NewState = "busy",
+%%  NewData = Req,
+%%  {next_state, NewState, NewData};
 
 %% unhandled event catch-all for debugging
 handle_event(EventType, EventContent, State, Data) ->
@@ -51,6 +70,7 @@ handle_event(EventType, EventContent, State, Data) ->
 
 %% Helpers
 
+%%rr(imem).
 %%{ok, Pid} = imem:start_link().
-%%imem:req(Pid, "val").
-%%imem:req(Pid, "val2").
+%%imem:req(Pid, {"adr1", "val1"}).
+%%imem:req(Pid, {"val2"}).
