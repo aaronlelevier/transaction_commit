@@ -1,11 +1,12 @@
-%% Source: https://www.erlang.org/doc/design_principles/statem.html#example
+%% Erlang implementation of https://github.com/tlaplus/Examples/blob/master/specifications/SpecifyingSystems/CachingMemory/InternalMemory.tla
 -module(imem).
 -behaviour(gen_statem).
 
 -export([start_link/0]).
 -export([
   req/2,
-  do/1
+  do/1,
+  rsp/1
 ]).
 -export([init/1,callback_mode/0,terminate/3]).
 -export([
@@ -18,7 +19,9 @@
 %% TODO: move to .hrl file ?
 -define(TABLE, mem).
 
-%% API
+%%%===================================================================
+%%% API
+%%%===================================================================
 
 start_link() ->
   gen_statem:start_link(?MODULE, [], []).
@@ -35,7 +38,12 @@ req(Pid, {Adr} = _Req) ->
 do(Pid) ->
   gen_statem:cast(Pid, do).
 
-%% gen_statem
+rsp(Pid) ->
+  gen_statem:cast(Pid, rsp).
+
+%%%===================================================================
+%%% gen_statem
+%%%===================================================================
 
 init([]) ->
   Data = undefined,
@@ -51,7 +59,7 @@ callback_mode() ->
 %% States: event callback mode
 %% Module:handle_event(EventType, EventContent, State, Data)
 handle_event(cast, {req, Req}, "rdy" = _State, _Data) ->
-  io:format("Send req:~p~n", [Req]),
+  io:format("Send p:~p req:~p~n", [self(), Req]),
   NewState = "busy",
   NewData = Req,
   io:format("NewState:~p NewData:~p~n", [NewState, NewData]),
@@ -70,6 +78,12 @@ handle_event(cast, do, "busy" = _State, _Data = #mreq{op=Op, adr=Adr, val=Val}) 
   io:format("NewState:~p NewData:~p~n", [NewState, NewData]),
   {next_state, NewState, NewData};
 
+handle_event(cast, rsp, "done" = _State, Data) ->
+  io:format("Reply p:~p buf:~p~n", [self(), Data]),
+  NewState = "rdy",
+  io:format("NewState:~p NewData:~p~n", [NewState, Data]),
+  {next_state, NewState, Data};
+
 %% unhandled event catch-all for debugging
 handle_event(EventType, EventContent, State, Data) ->
   io:format(
@@ -78,11 +92,3 @@ handle_event(EventType, EventContent, State, Data) ->
   % stuttering step
   % {next_state, State, Data}.
   keep_state_and_data.
-
-%% Run in console:
-
-%%rr(imem).
-%%dets:open_file(mem, [{file, "table.txt"}]).
-%%{ok, Pid} = imem:start_link().
-%%imem:req(Pid, {"adr1", "val1"}).
-%%imem:do(Pid).
